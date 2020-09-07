@@ -1,0 +1,23 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+    id 'application'
+}
+
+group 'com.knotflow'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.4.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation 'org.springframework:spring-context:5.2.8.RELEASE'
+    implementation "net.bytebuddy:byte-buddy:1.10.14"
+    testImplementation 'io.mockk:mockk:1.10.0'
+}
+
+application {
+    mainClassName = "com.knotflow.engine.demo.ProxyTestKt"
+}
