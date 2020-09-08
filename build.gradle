@@ -1,5 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+    id "org.jetbrains.kotlin.plugin.jpa" version "1.4.0"
     id 'application'
 }
 
@@ -8,13 +9,24 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.4.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'org.springframework:spring-context:5.2.8.RELEASE'
+    implementation "org.springframework:spring-context:5.2.8.RELEASE"
     implementation "net.bytebuddy:byte-buddy:1.10.14"
+
+    implementation "me.liuwj.ktorm:ktorm-core:3.0.0"
+    implementation "org.xerial:sqlite-jdbc:3.28.0"
+
+    implementation "org.hibernate:hibernate-core:5.4.21.Final"
+    implementation "org.springframework.data:spring-data-jpa:2.3.3.RELEASE"
+
+    implementation "org.slf4j:slf4j-simple:1.7.26"
+
+    testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
     testImplementation 'io.mockk:mockk:1.10.0'
 }
 

@@ -21,4 +21,4 @@ annotation class Workflow
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class WorkflowStep
+annotation class Step
