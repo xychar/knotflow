@@ -11,16 +11,6 @@ import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.implementation.FieldAccessor
 import net.bytebuddy.implementation.InvocationHandlerAdapter
 import net.bytebuddy.matcher.ElementMatchers
-import org.jetbrains.exposed.dao.Entity
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import java.lang.reflect.InvocationHandler
 
@@ -81,48 +71,13 @@ interface HandlerSetter {
     var handler: InvocationHandler?
 }
 
-data class FlowId(val id: String, val name: String) : Comparable<FlowId> {
-    override fun compareTo(other: FlowId) = compareValuesBy(this, other, { it.id }, { it.name })
+open class WorkflowBase {
+    @JvmField
+    var handler: InvocationHandler? = null
 }
-
-object Flows : Table() {
-    val id = varchar("id", 50).index()
-    val name = varchar("name", 200).index()
-    val age = integer("age")
-
-    override val primaryKey = PrimaryKey(id, name)
-}
-
-object Tasks : Table() {
-    val id = varchar("id", 50).index()
-    val name = varchar("name", 200)
-
-    override val primaryKey = PrimaryKey(id, name)
-}
-
-
-
-class Flow(id: EntityID<FlowId>) : Entity<FlowId>(id) {
-    //companion object : IntEntityClass<User>(Users)
-
-    var name by Flows.name
-    var age by Flows.age
-}
-
-//class City(id: EntityID<Int>) : IntEntity(id) {
-//    companion object : IntEntityClass<City>(Cities)
-//
-//    var name by Cities.name
-//    val users by User referrersOn Users.city
-//}
 
 fun main() {
-    val dbf = File("test1.db").canonicalPath
-    val db = Database.connect("jdbc:sqlite:$dbf", "org.sqlite.JDBC")
-
-    transaction(db) {
-        SchemaUtils.create(Flows, Tasks)
-    }
+    val dbf = File("sessions.db").canonicalPath
 
     val workflowClazz = WorkflowExample1::class.java
     val methodsClazz = Class.forName("${workflowClazz.name}\$DefaultImpls")
@@ -151,11 +106,14 @@ fun main() {
         )
 
     val workflowProxyClass = buddy
-        .subclass(Any::class.java)
+        .subclass(WorkflowBase::class.java)
+
+//        .defineField("handler", InvocationHandler::class.java, Visibility.PUBLIC)
+//
+//        .implement(HandlerSetter::class.java)
+//        .intercept(FieldAccessor.ofField("handler"))
+
         .implement(workflowClazz)
-        .defineField("handler", InvocationHandler::class.java, Visibility.PUBLIC)
-        .implement(HandlerSetter::class.java)
-        .intercept(FieldAccessor.ofField("handler"))
         .method(
             ElementMatchers.isDeclaredBy(
                 ElementMatchers.isSuperTypeOf(workflowClazz)
@@ -166,10 +124,10 @@ fun main() {
         .load(workflowClazz.classLoader)
         .loaded
 
-    val t1 = workflowClazz.cast(workflowProxyClass.getConstructor().newInstance())
+    val wfb = workflowProxyClass.newInstance()
+    // val hs = wfb as HandlerSetter
+    wfb.handler = handler
 
-    val hs = t1 as HandlerSetter
-    hs.handler = handler
-
+    val t1 = workflowClazz.cast(wfb)
     println(t1.example1())
 }

@@ -15,19 +15,13 @@ repositories {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.4.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "org.springframework:spring-context:5.2.8.RELEASE"
     implementation "net.bytebuddy:byte-buddy:1.10.14"
 
-    implementation "org.jetbrains.exposed:exposed-core:0.25.1"
-    implementation "org.jetbrains.exposed:exposed-jdbc:0.25.1"
-    implementation "org.jetbrains.exposed:exposed-dao:0.25.1"
+    implementation "org.springframework:spring-context:5.2.8.RELEASE"
 
-    implementation "me.liuwj.ktorm:ktorm-core:3.0.0"
-    implementation "me.liuwj.ktorm:ktorm-support-sqlite:3.0.0"
-    implementation "org.xerial:sqlite-jdbc:3.28.0"
-
-    implementation "org.hibernate:hibernate-core:5.4.21.Final"
     implementation "org.springframework.data:spring-data-jpa:2.3.3.RELEASE"
+    implementation "org.hibernate:hibernate-core:5.4.21.Final"
+    implementation "org.xerial:sqlite-jdbc:3.28.0"
 
     implementation "org.slf4j:slf4j-simple:1.7.26"
 
