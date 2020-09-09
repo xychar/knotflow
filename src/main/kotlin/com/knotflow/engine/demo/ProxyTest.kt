@@ -4,9 +4,6 @@ package com.knotflow.engine.demo
 
 import com.knotflow.engine.core.Step
 import com.knotflow.engine.core.Workflow
-import me.liuwj.ktorm.database.Database
-import me.liuwj.ktorm.database.TransactionIsolation
-import me.liuwj.ktorm.schema.*
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.NamingStrategy
 import net.bytebuddy.description.modifier.Visibility
@@ -14,6 +11,16 @@ import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.implementation.FieldAccessor
 import net.bytebuddy.implementation.InvocationHandlerAdapter
 import net.bytebuddy.matcher.ElementMatchers
+import org.jetbrains.exposed.dao.Entity
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import java.lang.reflect.InvocationHandler
 
@@ -74,62 +81,47 @@ interface HandlerSetter {
     var handler: InvocationHandler?
 }
 
-object DbSchema {
-    val t_flow = """
-        create table if not exists t_flow(
-            id int not null,
-            name varchar(128) not null,
-            location varchar(128) not null,
-            primary key(id, name)
-        );
-        """.trimIndent()
-
-    val t_task = """
-        create table if not exists t_task(
-            id int not null,
-            name varchar(128) not null,
-            job varchar(128) not null,
-            manager_id int null,
-            hire_date date not null,
-            salary bigint not null,
-            department_id int not null,
-            primary key(id, name)
-        );
-        """.trimIndent()
+data class FlowId(val id: String, val name: String) : Comparable<FlowId> {
+    override fun compareTo(other: FlowId) = compareValuesBy(this, other, { it.id }, { it.name })
 }
 
-object Departments : Table<Nothing>("t_department") {
-    val id = int("id").primaryKey()
-    val name = varchar("name").primaryKey()
-    val location = varchar("location")
+object Flows : Table() {
+    val id = varchar("id", 50).index()
+    val name = varchar("name", 200).index()
+    val age = integer("age")
+
+    override val primaryKey = PrimaryKey(id, name)
 }
 
-object Employees : Table<Nothing>("t_employee") {
-    val id = int("id").primaryKey()
-    val name = varchar("name").primaryKey()
-    val job = varchar("job")
-    val managerId = int("manager_id")
-    val hireDate = date("hire_date")
-    val salary = long("salary")
-    val departmentId = int("department_id")
+object Tasks : Table() {
+    val id = varchar("id", 50).index()
+    val name = varchar("name", 200)
+
+    override val primaryKey = PrimaryKey(id, name)
 }
+
+
+
+class Flow(id: EntityID<FlowId>) : Entity<FlowId>(id) {
+    //companion object : IntEntityClass<User>(Users)
+
+    var name by Flows.name
+    var age by Flows.age
+}
+
+//class City(id: EntityID<Int>) : IntEntity(id) {
+//    companion object : IntEntityClass<City>(Cities)
+//
+//    var name by Cities.name
+//    val users by User referrersOn Users.city
+//}
 
 fun main() {
     val dbf = File("test1.db").canonicalPath
     val db = Database.connect("jdbc:sqlite:$dbf", "org.sqlite.JDBC")
 
-    db.useTransaction(TransactionIsolation.SERIALIZABLE) {
-        it.connection.createStatement().use {
-            it.execute(DbSchema.t_flow)
-            it.execute(DbSchema.t_task)
-        }
-    }
-
-    db.useTransaction(TransactionIsolation.SERIALIZABLE) {
-        it.connection.createStatement().use {
-            it.execute(DbSchema.t_flow)
-            it.execute(DbSchema.t_task)
-        }
+    transaction(db) {
+        SchemaUtils.create(Flows, Tasks)
     }
 
     val workflowClazz = WorkflowExample1::class.java
