@@ -5,6 +5,7 @@ package com.knotflow.engine.demo
 import com.knotflow.engine.core.Step
 import com.knotflow.engine.core.Workflow
 import me.liuwj.ktorm.database.Database
+import me.liuwj.ktorm.database.TransactionIsolation
 import me.liuwj.ktorm.schema.*
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.NamingStrategy
@@ -74,25 +75,25 @@ interface HandlerSetter {
 }
 
 object DbSchema {
-    val t_department = """
-        create table if not exists t_department(
-          id int not null,
-          name varchar(128) not null,
-          location varchar(128) not null,
-          primary key(id, name)
+    val t_flow = """
+        create table if not exists t_flow(
+            id int not null,
+            name varchar(128) not null,
+            location varchar(128) not null,
+            primary key(id, name)
         );
         """.trimIndent()
 
-    val t_employee = """
-        create table if not exists t_employee(
-          id int not null,
-          name varchar(128) not null,
-          job varchar(128) not null,
-          manager_id int null,
-          hire_date date not null,
-          salary bigint not null,
-          department_id int not null,
-          primary key(id, name)
+    val t_task = """
+        create table if not exists t_task(
+            id int not null,
+            name varchar(128) not null,
+            job varchar(128) not null,
+            manager_id int null,
+            hire_date date not null,
+            salary bigint not null,
+            department_id int not null,
+            primary key(id, name)
         );
         """.trimIndent()
 }
@@ -117,10 +118,17 @@ fun main() {
     val dbf = File("test1.db").canonicalPath
     val db = Database.connect("jdbc:sqlite:$dbf", "org.sqlite.JDBC")
 
-    db.useConnection {
-        with(it.createStatement()) {
-            execute(DbSchema.t_department)
-            execute(DbSchema.t_employee)
+    db.useTransaction(TransactionIsolation.SERIALIZABLE) {
+        it.connection.createStatement().use {
+            it.execute(DbSchema.t_flow)
+            it.execute(DbSchema.t_task)
+        }
+    }
+
+    db.useTransaction(TransactionIsolation.SERIALIZABLE) {
+        it.connection.createStatement().use {
+            it.execute(DbSchema.t_flow)
+            it.execute(DbSchema.t_task)
         }
     }
 
