@@ -6,48 +6,47 @@ import com.knotflow.engine.core.Step
 import com.knotflow.engine.core.Workflow
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.NamingStrategy
-import net.bytebuddy.description.modifier.Visibility
 import net.bytebuddy.description.type.TypeDescription
-import net.bytebuddy.implementation.FieldAccessor
 import net.bytebuddy.implementation.InvocationHandlerAdapter
 import net.bytebuddy.matcher.ElementMatchers
-import java.io.File
 import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Method
+import kotlin.reflect.KClass
 
 
 @Workflow
 interface WorkflowBase1 {
     @Step
     fun hello() {
-        println("Method ${::hello.name} executed")
+        println("*** Method ${::hello.name} executed")
     }
 }
 
 @Workflow
 interface WorkflowExample1 : WorkflowBase1 {
-    var foo: String;
+    var foo: String
 
     @Step
     fun init() {
-        println("Method ${::init.name} executed")
+        println("*** Method ${::init.name} executed")
     }
 
     @Step
     fun input(): String {
-        // println("User Input:")
-        // return readLine().orEmpty().trim().toUpperCase()
-        println("Method ${::input.name} executed")
-        return "B"
+//        println("User Input:")
+//        return readLine().orEmpty().trim().toUpperCase()
+        println("*** Method ${::input.name} executed")
+        return "A"
     }
 
     @Step
     fun optionA() {
-        println("Method ${::optionA.name} executed")
+        println("*** Method ${::optionA.name} executed")
     }
 
     @Step
     fun optionB() {
-        println("Method ${::optionB.name} executed")
+        println("*** Method ${::optionB.name} executed")
     }
 
     @Step
@@ -62,72 +61,85 @@ interface WorkflowExample1 : WorkflowBase1 {
         }
 
         hello()
-
         return data
     }
 }
 
-interface HandlerSetter {
-    var handler: InvocationHandler?
+interface WorkflowSession<T> {
+    val workflow: T
 }
 
-open class WorkflowBase {
-    @JvmField
-    var handler: InvocationHandler? = null
+open class WorkflowSessionBase<T> : WorkflowSession<T> {
+    override val workflow: T
+        @Suppress("UNCHECKED_CAST")
+        get() = this as T
 }
 
-fun main() {
-    val dbf = File("sessions.db").canonicalPath
+class WorkflowFactory private constructor() : InvocationHandler {
+    lateinit var workflowClass: Class<*>
+    lateinit var workflowImplClass: Class<*>
+    lateinit var workflowProxyClass: Class<out WorkflowSessionBase<*>>
 
-    val workflowClazz = WorkflowExample1::class.java
-    val methodsClazz = Class.forName("${workflowClazz.name}\$DefaultImpls")
+    override fun invoke(proxy: Any, method: Method, args: Array<out Any>): Any? {
+        val paramTypes = arrayOf(workflowClass, *method.parameterTypes)
+        val implMethod = workflowImplClass.getMethod(method.name, *paramTypes)
 
-    val handler = InvocationHandler { proxy, method, args ->
-        val paramTypes = arrayOf(workflowClazz, *method.parameterTypes)
-        val implMethod = methodsClazz.getMethod(method.name, *paramTypes)
-
-        println("Entering method: ${implMethod.name}")
+        val methodName = "${method.declaringClass.simpleName}.${implMethod.name}"
+        println("Entering method: $methodName")
 
         val params = arrayOf(proxy, *args)
         val result = implMethod.invoke(null, *params)
 
-        println("Leaving method: ${implMethod.name}")
-        result
+        println("Leaving method: $methodName")
+        return result
     }
 
-    val buddy = ByteBuddy()
-        .with(
-            NamingStrategy.SuffixingRandom(
-                "KnotFlow",
-                NamingStrategy.SuffixingRandom.BaseNameResolver.ForGivenType(
-                    TypeDescription.ForLoadedType(workflowClazz)
+    fun newInstance(): WorkflowSessionBase<*> {
+        return workflowProxyClass.newInstance()
+    }
+
+    companion object {
+        private fun newByteBuddy(clazz: KClass<*>): ByteBuddy {
+            return ByteBuddy().with(
+                NamingStrategy.SuffixingRandom(
+                    "KnotFlow",
+                    NamingStrategy.SuffixingRandom.BaseNameResolver.ForGivenType(
+                        TypeDescription.ForLoadedType(clazz.java)
+                    )
                 )
             )
-        )
+        }
 
-    val workflowProxyClass = buddy
-        .subclass(WorkflowBase::class.java)
+        fun of(workflowClazz: KClass<*>): WorkflowFactory {
+            val factory = WorkflowFactory()
+            factory.workflowClass = workflowClazz.java
 
-//        .defineField("handler", InvocationHandler::class.java, Visibility.PUBLIC)
-//
-//        .implement(HandlerSetter::class.java)
-//        .intercept(FieldAccessor.ofField("handler"))
+            val implClassName = "${workflowClazz.java.name}\$DefaultImpls"
+            factory.workflowImplClass = Class.forName(implClassName)
 
-        .implement(workflowClazz)
-        .method(
-            ElementMatchers.isDeclaredBy(
-                ElementMatchers.isSuperTypeOf(workflowClazz)
-            )
-        )
-        .intercept(InvocationHandlerAdapter.toField("handler"))
-        .make()
-        .load(workflowClazz.classLoader)
-        .loaded
+            val buddy = newByteBuddy(workflowClazz)
+            factory.workflowProxyClass = buddy
+                .subclass(WorkflowSessionBase::class.java)
+                .implement(workflowClazz.java)
+                .method(
+                    ElementMatchers.isDeclaredBy(
+                        ElementMatchers.isSuperTypeOf(workflowClazz.java)
+                    )
+                )
+                .intercept(InvocationHandlerAdapter.of(factory))
+                .make()
+                .load(workflowClazz.java.classLoader)
+                .loaded
 
-    val wfb = workflowProxyClass.newInstance()
-    // val hs = wfb as HandlerSetter
-    wfb.handler = handler
+            return factory
+        }
+    }
+}
 
-    val t1 = workflowClazz.cast(wfb)
+fun main() {
+    val factory = WorkflowFactory.of(WorkflowExample1::class)
+    val wfb = factory.newInstance()
+
+    val t1 = wfb as WorkflowExample1
     println(t1.example1())
 }
