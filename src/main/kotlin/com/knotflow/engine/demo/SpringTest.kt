@@ -4,7 +4,11 @@ package com.knotflow.engine.demo
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.config.BeanDefinition
-import org.springframework.context.annotation.*
+import org.springframework.context.annotation.AnnotationConfigApplicationContext
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.PropertySource
+import org.springframework.context.annotation.Role
 import org.springframework.core.env.Environment
 import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor
 import org.springframework.jdbc.datasource.DriverManagerDataSource
@@ -14,8 +18,14 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
-import java.util.*
+import java.util.Properties
+import javax.persistence.Column
+import javax.persistence.Entity
 import javax.persistence.EntityManagerFactory
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
+import javax.persistence.Id
+import javax.persistence.Table
 import javax.sql.DataSource
 import kotlin.reflect.jvm.javaMethod
 
@@ -107,6 +117,24 @@ class ConfigurationTest {
         return PersistenceExceptionTranslationPostProcessor()
     }
 }
+
+@Entity
+@Table(name = "customer")
+data class Customer(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    var id: Int,
+
+    @Column(name = "first_name", length = 50)
+    var firstName: String,
+
+    @Column(name = "last_name", length = 50)
+    var lastName: String,
+
+    @Column(name = "email", length = 200)
+    var email: String,
+)
 
 fun main() {
     val context = AnnotationConfigApplicationContext()
