@@ -84,6 +84,7 @@ class WorkflowFactory private constructor() : InvocationHandler {
         val paramTypes = arrayOf(workflowClass, *method.parameterTypes)
         val implMethod = workflowImplClass.getMethod(method.name, *paramTypes)
 
+        // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-m3-generating-default-methods-in-interfaces/
         val methodName = "${method.declaringClass.simpleName}.${implMethod.name}"
         println("Entering method: $methodName")
 

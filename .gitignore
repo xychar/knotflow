@@ -32,4 +32,5 @@ gradle-app.setting
 /.classpath
 /.settings
 /.vscode
-bin/main/test1.kt
+
+*.db
