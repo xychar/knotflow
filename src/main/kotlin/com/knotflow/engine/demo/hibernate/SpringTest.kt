@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.knotflow.engine.demo
+package com.knotflow.engine.demo.hibernate
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.config.BeanDefinition
@@ -52,7 +52,6 @@ class TestService2 {
 }
 
 @Configuration
-//@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 @EnableTransactionManagement
 @PropertySource("classpath:database.properties")
 class PersistenceJPAConfig {
@@ -141,7 +140,7 @@ fun main() {
 
     val packagesToScan = arrayOf(
         "com.knotflow.engine.core",
-        "com.knotflow.engine.demo",
+        "com.knotflow.engine.demo.hibernate",
     )
 
     context.scan(*packagesToScan)

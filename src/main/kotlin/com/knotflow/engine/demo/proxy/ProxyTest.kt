@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.knotflow.engine.demo
+package com.knotflow.engine.demo.proxy
 
 import com.knotflow.engine.core.Step
 import com.knotflow.engine.core.Workflow
