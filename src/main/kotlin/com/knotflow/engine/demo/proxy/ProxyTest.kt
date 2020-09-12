@@ -12,12 +12,13 @@ import net.bytebuddy.matcher.ElementMatchers
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import kotlin.reflect.KClass
+import kotlin.reflect.jvm.kotlinFunction
 
 
 @Workflow
 interface WorkflowBase1 {
     @Step
-    fun hello() {
+    fun hello(t1: String) {
         println("*** Method ${::hello.name} executed")
     }
 }
@@ -60,7 +61,7 @@ interface WorkflowExample1 : WorkflowBase1 {
             optionB()
         }
 
-        hello()
+        hello("ab")
         return data
     }
 }
@@ -69,22 +70,11 @@ interface WorkflowSession<T> {
     val workflow: T
 }
 
-open class WorkflowSessionBase<T> : WorkflowSession<T> {
-    override val workflow: T
-        @Suppress("UNCHECKED_CAST")
-        get() = this as T
-}
-
-class WorkflowFactory private constructor() : InvocationHandler {
-    lateinit var workflowClass: Class<*>
-    lateinit var workflowImplClass: Class<*>
-    lateinit var workflowProxyClass: Class<out WorkflowSessionBase<*>>
-
+class WorkflowHandler(val factory: WorkflowFactory) : InvocationHandler {
     override fun invoke(proxy: Any, method: Method, args: Array<out Any>): Any? {
-        val paramTypes = arrayOf(workflowClass, *method.parameterTypes)
-        val implMethod = workflowImplClass.getMethod(method.name, *paramTypes)
+        val paramTypes = arrayOf(factory.workflowClass, *method.parameterTypes)
+        val implMethod = factory.workflowImplClass.getMethod(method.name, *paramTypes)
 
-        // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-m3-generating-default-methods-in-interfaces/
         val methodName = "${method.declaringClass.simpleName}.${implMethod.name}"
         println("Entering method: $methodName")
 
@@ -94,9 +84,26 @@ class WorkflowFactory private constructor() : InvocationHandler {
         println("Leaving method: $methodName")
         return result
     }
+}
+
+open class WorkflowSessionBase<T> : WorkflowSession<T> {
+    @JvmField
+    var handler: WorkflowHandler? = null
+
+    override val workflow: T
+        @Suppress("UNCHECKED_CAST")
+        get() = this as T
+}
+
+class WorkflowFactory private constructor() {
+    lateinit var workflowClass: Class<*>
+    lateinit var workflowImplClass: Class<*>
+    lateinit var workflowProxyClass: Class<out WorkflowSessionBase<*>>
 
     fun newInstance(): WorkflowSessionBase<*> {
-        return workflowProxyClass.newInstance()
+        val session = workflowProxyClass.newInstance()
+        session.handler = WorkflowHandler(this)
+        return session
     }
 
     companion object {
@@ -111,14 +118,16 @@ class WorkflowFactory private constructor() : InvocationHandler {
             )
         }
 
-        fun of(workflowClazz: KClass<*>): WorkflowFactory {
+        fun buildFrom(workflowClazz: KClass<*>): WorkflowFactory {
             val factory = WorkflowFactory()
             factory.workflowClass = workflowClazz.java
 
+            // https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-m3-generating-default-methods-in-interfaces/
             val implClassName = "${workflowClazz.java.name}\$DefaultImpls"
             factory.workflowImplClass = Class.forName(implClassName)
 
             val buddy = newByteBuddy(workflowClazz)
+
             factory.workflowProxyClass = buddy
                 .subclass(WorkflowSessionBase::class.java)
                 .implement(workflowClazz.java)
@@ -127,7 +136,7 @@ class WorkflowFactory private constructor() : InvocationHandler {
                         ElementMatchers.isSuperTypeOf(workflowClazz.java)
                     )
                 )
-                .intercept(InvocationHandlerAdapter.of(factory))
+                .intercept(InvocationHandlerAdapter.toField("handler"))
                 .make()
                 .load(workflowClazz.java.classLoader)
                 .loaded
@@ -138,7 +147,7 @@ class WorkflowFactory private constructor() : InvocationHandler {
 }
 
 fun main() {
-    val factory = WorkflowFactory.of(WorkflowExample1::class)
+    val factory = WorkflowFactory.buildFrom(WorkflowExample1::class)
     val wfb = factory.newInstance()
 
     val t1 = wfb as WorkflowExample1

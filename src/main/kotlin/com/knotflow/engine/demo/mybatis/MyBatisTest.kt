@@ -109,11 +109,11 @@ class FooServiceImpl(
             createStatement().use {
                 it.execute(
                     """
-                        CREATE TABLE if not exists users (
-                            uid	    TEXT,
-                            name	TEXT,
-                            PRIMARY KEY(uid)
-                        );
+                    CREATE TABLE if not exists users (
+                        uid     TEXT,
+                        name	TEXT,
+                        PRIMARY KEY(uid)
+                    );
                     """.trimIndent()
                 )
             }
