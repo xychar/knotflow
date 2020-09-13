@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.transaction.annotation.Transactional
 import javax.sql.DataSource
 
-
 data class User(
     var id: String? = null,
     var name: String? = null,
