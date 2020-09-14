@@ -54,26 +54,29 @@ interface WorkflowExample1 : WorkflowBase1 {
 fun main() {
     runSpringApp {
         val controller = WorkflowController.buildFrom(WorkflowExample1::class)
-        val workflowInstance = controller.newInstance<WorkflowExample1>()
+        controller.stepStateStore = getBean(StepStateStore::class.java)
 
-        val stepStateMapper = getBean(StepStateMapper::class.java)
-        stepStateMapper.createTable()
+        val stepInfoMapper = getBean(StepInfoMapper::class.java)
+        stepInfoMapper.createTable()
 
-        val state1 = StepState(
+        val step1 = StepInfo(
             sessionId = "s_001",
             stepName = "step01",
             stepKey = "---",
         )
 
-        val state2 = state1.copy(
-            state = "Done",
-        )
+        val step2 = step1.copy(state = "Done")
 
-        if (stepStateMapper.getStepStateBy(state1) == null) {
-            stepStateMapper.addStepState(state2)
+        if (stepInfoMapper.getStepInfoBy(step1) == null) {
+            stepInfoMapper.addStepInfo(step2)
         }
+
+        val workflowInstance = controller.newInstance<WorkflowExample1>()
 
         val t1 = workflowInstance.workflow
         println(t1.example1())
+
+        val stepState = controller.stepStateStore.loadState(StepStateKey("s01", "hello", "---"))
+        println(stepState)
     }
 }

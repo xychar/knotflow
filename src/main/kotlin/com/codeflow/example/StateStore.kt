@@ -17,8 +17,9 @@ import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider
 import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter
+import org.springframework.stereotype.Component
 
-data class StepState(
+data class StepInfo(
     var sessionId: String? = null,
     var stepName: String? = null,
     var stepKey: String? = null,
@@ -26,7 +27,7 @@ data class StepState(
 )
 
 @Mapper
-interface StepStateMapper {
+interface StepInfoMapper {
     @Update(
         "CREATE TABLE IF NOT EXISTS t_step_state(",
         "  session_id varchar(50) NOT NULL,",
@@ -39,7 +40,7 @@ interface StepStateMapper {
     fun createTable()
 
     @Results(
-        id = "stepState", value = [
+        id = "stepInfoResult", value = [
             Result(property = "sessionId", column = "session_id", id = true),
             Result(property = "stepName", column = "step_name", id = true),
             Result(property = "stepKey", column = "step_key"),
@@ -50,36 +51,62 @@ interface StepStateMapper {
         "SELECT * FROM t_step_state WHERE session_id = #{sessionId}",
         " and step_name = #{stepName} and step_key = #{stepKey}",
     )
-    fun getStepState(
+    fun getStepInfo(
         @Param("sessionId") sessionId: String,
         @Param("stepName") stepName: String,
         @Param("stepKey") stepKey: String,
-    ): StepState?
+    ): StepInfo?
 
     @Select(
         "SELECT * FROM t_step_state WHERE session_id = #{sessionId}",
         " and step_name = #{stepName} and step_key = #{stepKey}",
     )
-    @ResultMap("stepState")
-    fun getStepStateBy(example: StepState): StepState?
+    @ResultMap("stepInfoResult")
+    fun getStepInfoBy(example: StepInfo): StepInfo?
 
     @Insert(
         "INSERT INTO t_step_state(session_id, step_name, step_key, state)",
         " values(#{sessionId}, #{stepName}, #{stepKey}, #{state})",
     )
-    fun addStepState(stepState: StepState)
+    fun addStepInfo(stepInfo: StepInfo)
 
     @InsertProvider(type = SqlProviderAdapter::class, method = "insert")
-    fun insert(insertStatement: InsertStatementProvider<StepState?>?): Int
+    fun insert(insertStatement: InsertStatementProvider<StepInfo?>?): Int
 
     @UpdateProvider(type = SqlProviderAdapter::class, method = "update")
     fun update(updateStatement: UpdateStatementProvider?): Int
 
-    @ResultMap("stepState")
+    @ResultMap("stepInfoResult")
     @SelectProvider(type = SqlProviderAdapter::class, method = "select")
-    fun selectMany(selectStatement: SelectStatementProvider?): List<StepState?>?
+    fun selectMany(selectStatement: SelectStatementProvider?): List<StepInfo?>?
 
-    @ResultMap("stepState")
+    @ResultMap("stepInfoResult")
     @SelectProvider(type = SqlProviderAdapter::class, method = "select")
-    fun selectOne(selectStatement: SelectStatementProvider?): StepState?
+    fun selectOne(selectStatement: SelectStatementProvider?): StepInfo?
+}
+
+@Component
+class StepStateStoreImpl(private val mapper: StepInfoMapper) : StepStateStore {
+    override fun loadState(key: StepStateKey): StepStateData {
+        val stateKey = StepStateKey(key.instanceId, key.stepName, key.stepKey)
+        val stateInfo = mapper.getStepInfo(key.instanceId, key.stepName, key.stepKey)
+        if (stateInfo != null) {
+            return StepStateData(stateKey, stepState = stateInfo.state.toString())
+        }
+
+        return StepStateData(stateKey, stepState = StepState.Undefined.toString())
+    }
+
+    override fun updateLastError(key: StepStateKey, error: String?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun updateState(key: StepStateKey, state: String?) {
+        TODO("Not yet implemented")
+    }
+
+    override fun saveState(state: StepStateData) {
+        TODO("Not yet implemented")
+    }
+
 }

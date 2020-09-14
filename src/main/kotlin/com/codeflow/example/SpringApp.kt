@@ -1,5 +1,6 @@
 package com.codeflow.example
 
+import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.session.SqlSessionFactory
 import org.mybatis.spring.SqlSessionFactoryBean
 import org.mybatis.spring.SqlSessionTemplate
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.PropertySource
 import org.springframework.context.annotation.Role
@@ -21,7 +23,7 @@ import javax.sql.DataSource
 
 @Configuration
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-class ConfigurationTest {
+class ExceptionConfig {
     @Bean
     fun exceptionTranslation(): PersistenceExceptionTranslationPostProcessor {
         return PersistenceExceptionTranslationPostProcessor()
@@ -30,9 +32,10 @@ class ConfigurationTest {
 
 @Configuration
 @EnableTransactionManagement
-@MapperScan(basePackageClasses = [MyBatisConfig::class])
+@MapperScan(annotationClass = Mapper::class)
+@ComponentScan(basePackageClasses = [AppConfig::class])
 @PropertySource("classpath:database.properties")
-class MyBatisConfig {
+class AppConfig {
     @Autowired
     lateinit var env: Environment
 
@@ -71,7 +74,7 @@ class MyBatisConfig {
 
 inline fun runSpringApp(body: ApplicationContext.() -> Unit) {
     val context = AnnotationConfigApplicationContext()
-    context.register(MyBatisConfig::class.java)
+    context.register(AppConfig::class.java)
 
     context.refresh()
     context.start()
