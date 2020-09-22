@@ -62,7 +62,7 @@ fun main() {
         val step1 = StepInfo(
             sessionId = "s_001",
             stepName = "step01",
-            stepKey = "---",
+            stepKey = "-",
         )
 
         val step2 = step1.copy(state = "Done")
@@ -76,7 +76,7 @@ fun main() {
         val t1 = workflowInstance.workflow
         println(t1.example1())
 
-        val stepState = controller.stepStateStore.loadState(StepStateKey("s01", "hello", "---"))
+        val stepState = controller.stepStateStore.loadState(StepStateKey("s01", "hello", "-"))
         println(stepState)
     }
 }

@@ -110,7 +110,7 @@ interface WorkflowSession<T> {
     val lifecycle: WorkflowLifecycle
 }
 
-open class WorkflowSessionBase<T> : WorkflowSession<T> {
+open class WorkflowSessionImpl<T> : WorkflowSession<T> {
     @JvmField
     var jvmHandler: ExecutionHandler? = null
 
@@ -202,16 +202,16 @@ class WorkflowController private constructor() {
     lateinit var workflowClass: Class<*>
     lateinit var workflowImplClass: Class<*>
 
-    lateinit var workflowProxyClass: Class<out WorkflowSessionBase<*>>
+    lateinit var workflowProxyClass: Class<out WorkflowSessionImpl<*>>
 
     lateinit var stepStateStore: StepStateStore
 
-    fun <T> newInstance(): WorkflowSessionBase<T> {
+    fun <T> newInstance(): WorkflowSession<T> {
         val session = workflowProxyClass.getConstructor().newInstance()
         session.handler = ExecutionHandler(this)
 
         @Suppress("UNCHECKED_CAST")
-        return session as WorkflowSessionBase<T>
+        return session as WorkflowSessionImpl<T>
     }
 
     companion object {
@@ -248,7 +248,7 @@ class WorkflowController private constructor() {
             val buddy = newByteBuddy(workflowClazz)
 
             controller.workflowProxyClass = buddy
-                .subclass(WorkflowSessionBase::class.java)
+                .subclass(WorkflowSessionImpl::class.java)
                 .implement(workflowClazz.java)
                 .method(methodFilter(workflowClazz))
                 .intercept(InvocationHandlerAdapter.toField("jvmHandler"))
