@@ -55,7 +55,7 @@ enum class StepState {
 }
 
 class ExecutionHandler(val controller: WorkflowController) : InvocationHandler {
-    var instanceId: String = "-"
+    var sessionId: String = "-"
 
     var lifecycle: WorkflowLifecycle = WorkflowLifecycle.Initial
 
@@ -105,7 +105,7 @@ interface WorkflowSession<T> {
     /**
      * The instance id will be used to load or persist workflow states.
      */
-    val instanceId: String
+    val sessionId: String
 
     val lifecycle: WorkflowLifecycle
 }
@@ -124,8 +124,8 @@ open class WorkflowSessionBase<T> : WorkflowSession<T> {
         @Suppress("UNCHECKED_CAST")
         get() = this as T
 
-    override val instanceId: String
-        get() = handler.instanceId
+    override val sessionId: String
+        get() = handler.sessionId
 
     override val lifecycle: WorkflowLifecycle
         get() = handler.lifecycle
