@@ -6,13 +6,26 @@ package com.codeflow.example
 interface WorkflowBase1 {
     @Step
     fun hello(t1: String) {
-        println("*** Method ${::hello.name} executed")
+        println("*** Method ${::hello.name} executed in WorkflowBase1")
+
+        welcome(t1)
+    }
+
+    @Step
+    fun welcome(t1: String) {
+        println("*** Method ${::welcome.name} executed in WorkflowBase1")
     }
 }
 
 @Workflow
 interface WorkflowExample1 : WorkflowBase1 {
     var foo: String
+
+    @Step
+    override fun hello(t1: String) {
+        println("*** Method ${::hello.name} executed in WorkflowExample1")
+        super.hello(t1)
+    }
 
     @Step
     fun init() {
